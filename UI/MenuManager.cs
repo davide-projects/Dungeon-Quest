@@ -207,10 +207,10 @@ public class MenuManager
             return;
         }
 
-        if (risultati.Count == 1)
+        if (risultati.Count == 1 && _arsenale.TryFindByName(nome, out var arma))
         {
-            _hero.EquippedWeapon = risultati[0];
-            GraphicsHelper.WriteSuccess($"Equipaggiata: {risultati[0]}");
+            _hero.EquippedWeapon = arma;
+            GraphicsHelper.WriteSuccess($"Equipaggiata: {arma}");
             return;
         }
 
