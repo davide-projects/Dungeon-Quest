@@ -2,9 +2,9 @@
 
 public enum WeaponType
 {
-    Spada,
-    Arco,
-    Ascia,
-    Bastone,
-    Pugnale
+    Spada = 1,
+    Arco = 2,
+    Ascia = 3,
+    Bastone = 4,
+    Pugnale = 5
 }

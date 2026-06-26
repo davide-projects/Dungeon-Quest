@@ -1,0 +1,9 @@
+**/.git/
+**/.gitignore
+**/.idea/
+**/obj/
+**/bin/
+**/DungeonQuestWeb/
+**/test_run.ps1
+**/LICENSE
+**/README.md

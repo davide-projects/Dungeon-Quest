@@ -8,8 +8,10 @@ public class Hero : ICombatant
     private int _xp;
     private int _gold;
 
-    public string Name { get; }
+    public int Id { get; set; }
+    public string Name { get; private set; }
     public Weapon? EquippedWeapon { get; set; }
+    public List<Weapon> Weapons { get; set; } = [];
     public int Level { get; private set; }
     public int BaseAttack { get; private set; }
     public int MaxHp { get; private set; }
@@ -41,6 +43,8 @@ public class Hero : ICombatant
 
     public bool IsAlive => Hp > 0;
 
+    private Hero() { }
+
     public Hero(string name)
     {
         Name = string.IsNullOrWhiteSpace(name) ? "Eroe" : name.Trim();
@@ -50,6 +54,34 @@ public class Hero : ICombatant
         _hp = 30;
         _xp = 0;
         Gold = 0;
+    }
+
+    public void Revive()
+    {
+        if (_hp <= 0)
+            _hp = MaxHp;
+    }
+
+    public void Reset()
+    {
+        _hp = 30;
+        _xp = 0;
+        _gold = 0;
+        Level = 1;
+        BaseAttack = 5;
+        MaxHp = 30;
+        EquippedWeapon = null;
+    }
+
+    public string GetShortStatus()
+    {
+        string stato = Hp <= 0 ? " (Sconfitto!)" : "";
+        return $"{Name} — Liv.{Level} | HP: {Hp}/{MaxHp} | Att: {AttackPower} | Oro: {Gold}{stato}";
+    }
+
+    public void Heal(int amount)
+    {
+        _hp = Math.Min(MaxHp, _hp + amount);
     }
 
     public void TakeDamage(int damage)

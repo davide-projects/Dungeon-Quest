@@ -13,6 +13,12 @@ public enum CombatResult
 public class CombatManager
 {
     private static readonly Random _random = new();
+    private readonly ArsenalManager _arsenale;
+
+    public CombatManager(ArsenalManager arsenale)
+    {
+        _arsenale = arsenale;
+    }
 
     public CombatResult Fight(Hero hero, Enemy enemy)
     {
@@ -21,18 +27,22 @@ public class CombatManager
             GraphicsHelper.WriteCombatHeader(hero.Name, enemy.Name, hero.Hp, hero.MaxHp, enemy.Hp, enemy.MaxHp);
             Console.WriteLine(GraphicsHelper.GetEnemyArt(enemy.Name));
             Console.WriteLine();
-            Console.WriteLine("   1) Attacca   2) Fuggi");
-            Console.Write("   Scelta: ");
-            var input = Console.ReadLine()?.Trim();
+
+            var input = LeggiScelta(hero);
 
             if (input == "2")
-            {
                 return CombatResult.Flee;
+
+            if (input == "3")
+            {
+                _arsenale.TryUsePotion();
+                Pausa();
+                continue;
             }
 
             if (input != "1")
             {
-                GraphicsHelper.WriteError("Scelta non valida. 1 per attaccare, 2 per fuggire.");
+                GraphicsHelper.WriteError("Scelta non valida.");
                 Pausa();
                 continue;
             }
@@ -67,14 +77,23 @@ public class CombatManager
             }
 
             if (!hero.IsAlive)
-            {
                 return CombatResult.Defeat;
-            }
 
             Pausa();
         }
 
         return CombatResult.Defeat;
+    }
+
+    private string LeggiScelta(Hero hero)
+    {
+        if (_arsenale.PotionCount > 0)
+            Console.WriteLine($"   1) Attacca   2) Fuggi   3) Usa pozione ({_arsenale.PotionCount})");
+        else
+            Console.WriteLine("   1) Attacca   2) Fuggi");
+
+        Console.Write("   Scelta: ");
+        return Console.ReadLine()?.Trim() ?? "";
     }
 
     private static void Pausa()
