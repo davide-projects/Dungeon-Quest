@@ -27,11 +27,16 @@ MySQL è esposto sulla porta **3307** dell'host per evitare conflitti.
 # Crea il database MySQL manualmente
 mysql -u root -p -e "CREATE DATABASE dungeonquest;"
 
-# Copia .env.example in .env e personalizza le credenziali
-
 # Esegui
 dotnet run --project DungeonQuest
 ```
+
+Per visualizzare i dati con TablePlus / MySQL Workbench:
+- **Host**: `localhost`
+- **Port**: `3307`
+- **User**: `root`
+- **Password**: `root`
+- **Database**: `dungeonquest`
 
 ## Gameplay
 
