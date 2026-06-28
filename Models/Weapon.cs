@@ -64,7 +64,7 @@ public class Weapon
         }
     }
 
-    public Weapon(string name, WeaponType type, int damage, WeaponRarity rarity = WeaponRarity.Comune)
+    public Weapon(string name, WeaponType type, int damage, WeaponRarity rarity = WeaponRarity.Common)
     {
         Name = name;
         Type = type;
@@ -72,13 +72,9 @@ public class Weapon
         Rarity = rarity;
     }
 
-    internal Weapon(int code, string name, WeaponType type, int damage, WeaponRarity rarity = WeaponRarity.Comune)
+    internal Weapon(int code, string name, WeaponType type, int damage, WeaponRarity rarity = WeaponRarity.Common) : this(name, type, damage, rarity)
     {
         Code = code;
-        _name = name;
-        Type = type;
-        _damage = damage;
-        Rarity = rarity;
     }
 
     public void Update(string name, WeaponType type, int damage, WeaponRarity rarity)

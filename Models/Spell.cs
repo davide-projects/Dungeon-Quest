@@ -6,8 +6,8 @@ namespace DungeonQuest.Models;
 [Table("incantesimi")]
 public class Spell
 {
-    private string _nome = string.Empty;
-    private int _danno;
+    private string _name = string.Empty;
+    private int _damage;
 
     [Column("id")]
     public int Id { get; }
@@ -15,26 +15,26 @@ public class Spell
     [Column("nome")]
     public string Name
     {
-        get => _nome;
+        get => _name;
         private set
         {
             if (string.IsNullOrWhiteSpace(value))
                 throw new ArgumentException("Il nome dell'incantesimo non può essere vuoto.");
 
-            _nome = value.Trim();
+            _name = value.Trim();
         }
     }
 
     [Column("danno")]
     public int Damage
     {
-        get => _danno;
+        get => _damage;
         private set
         {
             if (value <= 0)
                 throw new ArgumentException("Il danno dell'incantesimo deve essere maggiore di zero.");
 
-            _danno = value;
+            _damage = value;
         }
     }
 

@@ -2,9 +2,9 @@
 
 public enum WeaponRarity
 {
-    Comune,
-    NonComune,
-    Raro,
-    Epico,
-    Leggendario
+    Common,
+    Uncommon,
+    Rare,
+    Epic,
+    Legendary
 }

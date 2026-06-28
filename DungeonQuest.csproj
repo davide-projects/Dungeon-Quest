@@ -3,9 +3,10 @@
     <PropertyGroup>
 <OutputType>Exe</OutputType>
 <AssemblyName>DungeonQuestApp</AssemblyName>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <RollForward>LatestMajor</RollForward>
     </PropertyGroup>
 
     <ItemGroup>

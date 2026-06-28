@@ -12,12 +12,18 @@ public enum CombatResult
 
 public class CombatManager
 {
-    private static readonly Random _random = new();
-    private readonly ArsenalManager _arsenale;
+    private const int BaseMissChance = 20;
+    private const int MissReductionPerLevel = 2;
+    private const int MinMissChance = 2;
+    private const double MinDamageMultiplier = 0.8;
+    private const double MaxDamageVariation = 0.4;
 
-    public CombatManager(ArsenalManager arsenale)
+    private static readonly Random _random = new();
+    private readonly ArsenalManager _arsenal;
+
+    public CombatManager(ArsenalManager arsenal)
     {
-        _arsenale = arsenale;
+        _arsenal = arsenal;
     }
 
     public CombatResult Fight(Hero hero, Enemy enemy)
@@ -28,22 +34,22 @@ public class CombatManager
             Console.WriteLine(GraphicsHelper.GetEnemyArt(enemy.Name));
             Console.WriteLine();
 
-            var input = LeggiScelta(hero);
+            var input = ReadChoice(hero);
 
             if (input == "2")
                 return CombatResult.Flee;
 
             if (input == "3")
             {
-                _arsenale.TryUsePotion();
-                Pausa();
+                _arsenal.TryUsePotion();
+                GraphicsHelper.Pause();
                 continue;
             }
 
             if (input != "1")
             {
                 GraphicsHelper.WriteError("Scelta non valida.");
-                Pausa();
+                GraphicsHelper.Pause();
                 continue;
             }
 
@@ -79,16 +85,16 @@ public class CombatManager
             if (!hero.IsAlive)
                 return CombatResult.Defeat;
 
-            Pausa();
+            GraphicsHelper.Pause();
         }
 
         return CombatResult.Defeat;
     }
 
-    private string LeggiScelta(Hero hero)
+    private string ReadChoice(Hero hero)
     {
-        if (_arsenale.PotionCount > 0)
-            Console.WriteLine($"   1) Attacca   2) Fuggi   3) Usa pozione ({_arsenale.PotionCount})");
+        if (_arsenal.PotionCount > 0)
+            Console.WriteLine($"   1) Attacca   2) Fuggi   3) Usa pozione ({_arsenal.PotionCount})");
         else
             Console.WriteLine("   1) Attacca   2) Fuggi");
 
@@ -96,19 +102,13 @@ public class CombatManager
         return Console.ReadLine()?.Trim() ?? "";
     }
 
-    private static void Pausa()
-    {
-        Console.Write("\n   Premi INVIO per continuare...");
-        Console.ReadLine();
-    }
-
     private static int CalculateHeroDamage(Hero hero)
     {
-        var missChance = Math.Max(2, 20 - (hero.Level - 1) * 2);
+        var missChance = Math.Max(MinMissChance, BaseMissChance - (hero.Level - 1) * MissReductionPerLevel);
         if (_random.Next(100) < missChance)
             return 0;
 
-        var variation = 0.8 + _random.NextDouble() * 0.4;
+        var variation = MinDamageMultiplier + _random.NextDouble() * MaxDamageVariation;
         return Math.Max(1, (int)(hero.AttackPower * variation));
     }
 }

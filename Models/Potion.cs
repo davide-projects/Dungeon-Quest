@@ -14,7 +14,7 @@ public class Potion
         Name = name;
     }
 
-    private Potion() { }
+    private Potion() { Name = null!; }
 
     public override string ToString()
     {

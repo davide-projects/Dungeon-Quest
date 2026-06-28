@@ -11,21 +11,21 @@ while (true)
     Console.Clear();
     GraphicsHelper.WriteMenuTitle();
 
-    Hero eroe;
+    Hero hero;
 
     while (true)
     {
         try
         {
-            var eroi = await db.Heroes
+            var heroes = await db.Heroes
                 .OrderBy(h => h.Name)
                 .ToListAsync();
 
-            if (eroi.Count == 0)
+            if (heroes.Count == 0)
             {
-                var nome = Benvenuto.ChiediNome();
-                eroe = new Hero(nome);
-                db.Heroes.Add(eroe);
+                var name = Welcome.AskName();
+                hero = new Hero(name);
+                db.Heroes.Add(hero);
                 await db.SaveChangesAsync();
                 break;
             }
@@ -33,8 +33,8 @@ while (true)
             Console.WriteLine();
             GraphicsHelper.WriteTitle("EROI DISPONIBILI");
 
-            for (int i = 0; i < eroi.Count; i++)
-                Console.WriteLine($"   {i + 1,2}) {eroi[i].GetShortStatus()}");
+            for (int i = 0; i < heroes.Count; i++)
+                Console.WriteLine($"   {i + 1,2}) {heroes[i].GetShortStatus()}");
 
             Console.WriteLine();
             Console.WriteLine("   C) Crea un nuovo eroe");
@@ -51,9 +51,9 @@ while (true)
 
             if (input == "c")
             {
-                var nome = Benvenuto.ChiediNome();
-                eroe = new Hero(nome);
-                db.Heroes.Add(eroe);
+                var name = Welcome.AskName();
+                hero = new Hero(name);
+                db.Heroes.Add(hero);
                 await db.SaveChangesAsync();
                 break;
             }
@@ -61,40 +61,40 @@ while (true)
             if (input == "e")
             {
                 Console.Write("   Numero eroe da eliminare: ");
-                if (!int.TryParse(Console.ReadLine()?.Trim(), out var idx) || idx < 1 || idx > eroi.Count)
+                if (!int.TryParse(Console.ReadLine()?.Trim(), out var idx) || idx < 1 || idx > heroes.Count)
                 {
                     GraphicsHelper.WriteError("Numero non valido.");
                     continue;
                 }
 
-                var daEliminare = eroi[idx - 1];
-                Console.Write($"   Eliminare '{daEliminare.Name}'? (s/N): ");
-                var conferma = Console.ReadLine()?.Trim().ToLowerInvariant();
-                if (conferma != "s" && conferma != "si")
+                var toDelete = heroes[idx - 1];
+                Console.Write($"   Eliminare '{toDelete.Name}'? (s/N): ");
+                var confirm = Console.ReadLine()?.Trim().ToLowerInvariant();
+                if (confirm != "s" && confirm != "si")
                 {
                     Console.WriteLine("   Operazione annullata.");
                     continue;
                 }
 
-                db.Heroes.Remove(daEliminare);
+                db.Heroes.Remove(toDelete);
                 await db.SaveChangesAsync();
-                GraphicsHelper.WriteSuccess($"Eroe '{daEliminare.Name}' eliminato.");
+                GraphicsHelper.WriteSuccess($"Eroe '{toDelete.Name}' eliminato.");
                 continue;
             }
 
-            if (int.TryParse(input, out var num) && num >= 1 && num <= eroi.Count)
+            if (int.TryParse(input, out var num) && num >= 1 && num <= heroes.Count)
             {
-                eroe = eroi[num - 1];
+                hero = heroes[num - 1];
 
-                if (eroe.Hp <= 0)
+                if (hero.Hp <= 0)
                 {
-                    Console.Write($"   {eroe.Name} è morto. Vuoi resettarlo e ricominciare? (s/N): ");
+                    Console.Write($"   {hero.Name} è morto. Vuoi resettarlo e ricominciare? (s/N): ");
                     if (Console.ReadLine()?.Trim().ToLowerInvariant() == "s")
                     {
-                        db.RemoveRange(db.Potions.Where(p => p.HeroId == eroe.Id));
-                        var armi = await db.Weapons.Where(w => w.HeroId == eroe.Id).ToListAsync();
-                        db.RemoveRange(armi);
-                        eroe.Reset();
+                        db.RemoveRange(db.Potions.Where(p => p.HeroId == hero.Id));
+                        var weapons = await db.Weapons.Where(w => w.HeroId == hero.Id).ToListAsync();
+                        db.RemoveRange(weapons);
+                        hero.Reset();
                         await db.SaveChangesAsync();
                     }
                     else
@@ -103,7 +103,7 @@ while (true)
                     }
                 }
 
-                await db.Entry(eroe).Reference(h => h.EquippedWeapon).LoadAsync();
+                await db.Entry(hero).Reference(h => h.EquippedWeapon).LoadAsync();
 
                 break;
             }
@@ -118,6 +118,6 @@ while (true)
         }
     }
 
-    var menu = new MenuManager(db, eroe);
+    var menu = new MenuManager(db, hero);
     menu.Run();
 }

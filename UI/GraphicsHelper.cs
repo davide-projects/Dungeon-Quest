@@ -196,4 +196,20 @@ public static class GraphicsHelper
         WriteColor(">> ", ConsoleColor.Green);
         Console.WriteLine(message);
     }
+
+    public static void Pause()
+    {
+        Console.Write("\n   Premi INVIO per continuare...");
+        Console.ReadLine();
+    }
+
+    public static string Capitalize(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return input;
+        return char.ToUpper(input[0]) + input.Substring(1);
+    }
+
+    public const string WeaponTypeMenu = "   1) Spada   2) Arco   3) Ascia   4) Bastone   5) Pugnale";
+    public const string RarityMenu = "   1) Comune   2) Non Comune   3) Raro   4) Epico   5) Leggendario";
 }

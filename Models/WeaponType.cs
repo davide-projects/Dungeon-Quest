@@ -2,9 +2,9 @@
 
 public enum WeaponType
 {
-    Spada = 1,
-    Arco = 2,
-    Ascia = 3,
-    Bastone = 4,
-    Pugnale = 5
+    Sword = 1,
+    Bow = 2,
+    Axe = 3,
+    Staff = 4,
+    Dagger = 5
 }

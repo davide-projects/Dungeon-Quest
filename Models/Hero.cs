@@ -1,9 +1,18 @@
-﻿using DungeonQuest.Interfaces;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using DungeonQuest.Interfaces;
 
 namespace DungeonQuest.Models;
 
 public class Hero : ICombatant
 {
+    private const int XpPerLevel = 100;
+    private const int MaxHeroLevel = 10;
+    private const int StartingLevel = 1;
+    private const int StartingBaseAttack = 5;
+    private const int StartingMaxHp = 30;
+    private const int AttackPerLevel = 2;
+    private const int HpPerLevel = 10;
+
     private int _hp;
     private int _xp;
     private int _gold;
@@ -43,15 +52,18 @@ public class Hero : ICombatant
 
     public bool IsAlive => Hp > 0;
 
-    private Hero() { }
+    [NotMapped]
+    public string? LevelUpMessage { get; private set; }
+
+    private Hero() { Name = null!; }
 
     public Hero(string name)
     {
         Name = string.IsNullOrWhiteSpace(name) ? "Eroe" : name.Trim();
-        Level = 1;
-        BaseAttack = 5;
-        MaxHp = 30;
-        _hp = 30;
+        Level = StartingLevel;
+        BaseAttack = StartingBaseAttack;
+        MaxHp = StartingMaxHp;
+        _hp = StartingMaxHp;
         _xp = 0;
         Gold = 0;
     }
@@ -64,19 +76,19 @@ public class Hero : ICombatant
 
     public void Reset()
     {
-        _hp = 30;
+        _hp = StartingMaxHp;
         _xp = 0;
         _gold = 0;
-        Level = 1;
-        BaseAttack = 5;
-        MaxHp = 30;
+        Level = StartingLevel;
+        BaseAttack = StartingBaseAttack;
+        MaxHp = StartingMaxHp;
         EquippedWeapon = null;
     }
 
     public string GetShortStatus()
     {
-        string stato = Hp <= 0 ? " (Sconfitto!)" : "";
-        return $"{Name} — Liv.{Level} | HP: {Hp}/{MaxHp} | Att: {AttackPower} | Oro: {Gold}{stato}";
+        string state = Hp <= 0 ? " (Sconfitto!)" : "";
+        return $"{Name} — Liv.{Level} | HP: {Hp}/{MaxHp} | Att: {AttackPower} | Oro: {Gold}{state}";
     }
 
     public void Heal(int amount)
@@ -97,17 +109,24 @@ public class Hero : ICombatant
 
     private void LevelUp()
     {
-        _xp -= Level * 100;
+        if (Level >= MaxHeroLevel)
+        {
+            _xp = Level * XpPerLevel;
+            LevelUpMessage = null;
+            return;
+        }
+
+        _xp -= Level * XpPerLevel;
         Level++;
-        MaxHp += 10;
+        MaxHp += HpPerLevel;
         _hp = MaxHp;
-        BaseAttack += 2;
-        Console.WriteLine($"\n{Name} è salito al livello {Level}! Vita ripristinata, attacco base ora {BaseAttack}.");
+        BaseAttack += AttackPerLevel;
+        LevelUpMessage = $"{Name} è salito al livello {Level}! Vita ripristinata, attacco base ora {BaseAttack}.";
     }
 
     public string GetStatus()
     {
-        string arma = EquippedWeapon is null ? "a mani nude" : EquippedWeapon.Name;
-        return $"{Name} — Liv.{Level} | HP: {Hp}/{MaxHp} | Att: {AttackPower} | XP: {_xp}/{Level * 100} | Oro: {Gold} | Arma: {arma}";
+        string weapon = EquippedWeapon is null ? "a mani nude" : EquippedWeapon.Name;
+        return $"{Name} — Liv.{Level} | HP: {Hp}/{MaxHp} | Att: {AttackPower} | XP: {_xp}/{Level * 100} | Oro: {Gold} | Arma: {weapon}";
     }
 }

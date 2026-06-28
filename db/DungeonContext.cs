@@ -45,7 +45,7 @@ public class DungeonContext : DbContext
         {
             entity.HasKey(w => w.Code);
             entity.Property(w => w.Rarity)
-                  .HasDefaultValue(WeaponRarity.Comune);
+                  .HasDefaultValue(WeaponRarity.Common);
         });
 
         modelBuilder.Entity<Potion>(entity =>
