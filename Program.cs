@@ -4,7 +4,7 @@ using DungeonQuest.UI;
 using Microsoft.EntityFrameworkCore;
 
 using var db = new DungeonContext();
-db.Database.Migrate();
+db.Database.EnsureCreated();
 
 while (true)
 {

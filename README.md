@@ -1,116 +1,103 @@
-# ⚔️ DungeonQuest
+# DungeonQuest
 
-Un gioco di ruolo testuale a turni sviluppato in **C# / .NET**, con persistenza dei dati tramite **Entity Framework Core** e un'interfaccia a menu interattiva da terminale.
- 
----
+Gioco di avventura testuale in C# per console (.NET 10). I dati sono persistenti su **MySQL** tramite **Entity Framework Core 10** (Pomelo).
 
-## 🗂️ Struttura del progetto
+## Requisiti
+
+- [Docker](https://www.docker.com/) (consigliato)
+- Oppure .NET SDK 10 + MySQL 8.0 in locale su `localhost:3306`
+
+## Come eseguire
+
+### Con Docker (consigliato)
+
+```bash
+docker compose up -d             # avvia MySQL + app (sfondo)
+docker compose logs app -f       # segui l'output del gioco
+docker compose run app           # esegui in primo piano
+docker compose down -v           # ferma e cancella volumi (reset DB)
+```
+
+La prima esecuzione scarica le immagini e crea il database automaticamente.
+MySQL è esposto sulla porta **3307** dell'host per evitare conflitti.
+
+### Senza Docker (locale)
+
+```bash
+# Crea il database MySQL manualmente
+mysql -u root -p -e "CREATE DATABASE dungeonquest;"
+
+# Copia .env.example in .env e personalizza le credenziali
+
+# Esegui
+dotnet run --project DungeonQuest
+```
+
+## Gameplay
+
+### Selezione eroe
+All'avvio il gioco mostra tutti gli eroi salvati. Puoi crearne di nuovi, eliminarli o selezionarne uno esistente.
+
+### Menu principale
+1. Aggiungi un'arma all'arsenale
+2. Mostra inventario
+3. Mostra l'arsenale per tipo
+4. Cerca un'arma ed equipaggiala
+5. Modifica un'arma
+6. Combatti contro un nemico
+7. Salva l'arsenale su file (CSV)
+0. Torna al menu principale
+
+### Combattimento
+Scontro a turni tra eroe e nemico (Goblin, Scheletro, Drago). Il drago appare dal livello 2 in poi con probabilità crescente.
+
+| Livello | Drago | Scheletro | Goblin |
+|---------|-------|-----------|--------|
+| 1       | 0%    | 50%       | 50%    |
+| 2       | 5%    | 47.5%     | 47.5%  |
+| ...     | ...   | ...       | ...    |
+| 10      | 45%   | 27.5%     | 27.5%  |
+
+Opzioni in combattimento:
+- **Attacca** — colpisci il nemico (possibile chance di mancare)
+- **Fuggi** — torni al menu
+- **Usa pozione** — recupera 50% HP massimi (non consumata se HP già al massimo)
+
+### Pozioni
+- Drop dopo vittoria: Goblin/Scheletro 15%, Drago 70%
+- Le pozioni sono persistenti su DB
+
+## Architettura
 
 ```
 DungeonQuest/
-├── db/
-│   └── DungeonContext.cs       # DbContext EF Core
+├── Program.cs              ← entry point
 ├── Models/
-│   ├── Hero.cs                 # Modello eroe
-│   ├── Potion.cs               # Modello pozione
-│   └── Weapon.cs               # Modello arma
+│   ├── Hero.cs             ← eroe (max livello 10)
+│   ├── Enemy.cs            ← nemico astratto
+│   ├── Goblin.cs / Skeleton.cs / Dragon.cs
+│   ├── Weapon.cs           ← arma con tipo, rarità, danno
+│   ├── Potion.cs           ← pozione curativa
+│   └── Spell.cs            ← incantesimo (riservato)
+├── Services/
+│   ├── CombatManager.cs    ← loop combattimento a turni
+│   └── ArsenalManager.cs   ← gestione armi, pozioni, CSV
 ├── UI/
-│   ├── GraphicsHelper.cs       # Rendering ASCII / titoli / separatori
-│   ├── MenuManager.cs          # Gestione del menu principale
-│   └── Welcome.cs              # Schermata di benvenuto
-└── Program.cs                  # Entry point
-```
- 
----
-
-## 🚀 Avvio rapido
-
-### Prerequisiti
-
-- [.NET 8 SDK](https://dotnet.microsoft.com/download) o superiore
-- EF Core CLI tools (`dotnet-ef`)
-### Installazione
-
-```bash
-git clone https://github.com/tuonome/DungeonQuest.git
-cd DungeonQuest
-dotnet restore
-dotnet ef database update
-dotnet run
-```
- 
----
-
-## 🎮 Funzionalità
-
-### Selezione eroe
-
-All'avvio, il gioco mostra tutti gli eroi salvati nel database. Da qui puoi:
-
-| Comando | Azione |
-|---------|--------|
-| `1`–`N` | Seleziona un eroe esistente |
-| `C` | Crea un nuovo eroe |
-| `E` | Elimina un eroe |
-| `0` | Esci dal gioco |
-
-### Eroe morto
-
-Se selezioni un eroe con **HP ≤ 0**, il gioco ti chiede se vuoi resettarlo:
-
-- Confermi con `s` → inventario azzerato (pozioni e armi rimosse), eroe ripristinato allo stato iniziale
-- Annulli → torni al menu di selezione
-### Arma equipaggiata
-
-Quando carichi un eroe esistente, l'arma equipaggiata viene caricata automaticamente via lazy loading (`Reference(...).LoadAsync()`).
- 
----
-
-## 🗄️ Database
-
-Il progetto usa **SQLite** (predefinito) tramite Entity Framework Core. Le migrazioni vengono applicate automaticamente all'avvio:
-
-```csharp
-db.Database.Migrate();
+│   ├── GraphicsHelper.cs   ← stili, health bar, ASCII art
+│   ├── MenuManager.cs      ← menu principale
+│   └── Welcome.cs          ← creazione nuovo eroe
+├── db/
+│   └── DungeonContext.cs   ← DbContext EF Core (MySQL)
+└── Exceptions/             ← gerarchia eccezioni armi
 ```
 
-### Entità principali
+### Database
+Entity Framework Core 10 con MySQL (Pomelo). Lo schema è creato automaticamente via `EnsureCreated()` — non servono migrazioni manuali.
 
-- **Hero** — nome, HP, statistiche, arma equipaggiata
-- **Weapon** — appartiene a un eroe (`HeroId`)
-- **Potion** — appartiene a un eroe (`HeroId`)
----
+### Docker
+`docker-compose.yml` con due servizi: `db` (MySQL 8.0, porta 3307) e `app` (.NET 10).
+Credenziali configurabili nel file `.env`.
 
-## 🧱 Architettura
-
-```
-Program.cs
-│
-├── DungeonContext          ← EF Core (SQLite)
-│
-├── GraphicsHelper          ← Titoli ASCII, separatori, messaggi
-├── Welcome                 ← Input nome nuovo eroe
-│
-└── MenuManager             ← Loop di gioco principale
-```
-
-Il flusso principale è un **doppio ciclo `while(true)`**:
-
-1. **Ciclo esterno** — riavvia l'intera sessione dopo che un eroe finisce la sua avventura
-2. **Ciclo interno** — gestisce la selezione / creazione / eliminazione dell'eroe
----
-
-## 🛠️ Tecnologie
-
-| Tecnologia | Utilizzo |
-|-----------|----------|
-| C# / .NET 8 | Linguaggio e runtime |
-| Entity Framework Core | ORM + migrazioni |
-| SQLite | Database locale |
-| LINQ async | Query asincrone sul DB |
- 
----
-
-## 📝 Licenza
-
-Distribuito sotto licenza **MIT**. Vedi [`LICENSE`](LICENSE) per i dettagli.
+### Design pattern
+- **Strategy** (`IAttackBehavior`): tre comportamenti d'attacco per i nemici
+- **Template Method** (`Enemy`): classe astratta con sottoclassi concrete
