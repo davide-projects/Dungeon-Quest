@@ -19,6 +19,7 @@ public class Hero : ICombatant
     private int _hp;
     private int _xp;
     private int _gold;
+    private int _xpBoostRemaining;
 
     public int Id { get; set; }
     public string Name { get; private set; }
@@ -61,6 +62,12 @@ public class Hero : ICombatant
     [NotMapped]
     public string? LevelUpMessage { get; set; }
 
+    public int XpBoostRemaining
+    {
+        get => _xpBoostRemaining;
+        set => _xpBoostRemaining = Math.Max(0, value);
+    }
+
     private Hero() { Name = null!; }
 
     public Hero(string name)
@@ -71,6 +78,7 @@ public class Hero : ICombatant
         MaxHp = StartingMaxHp;
         _hp = StartingMaxHp;
         _xp = 0;
+        _xpBoostRemaining = 0;
         Gold = 0;
     }
 
@@ -84,6 +92,7 @@ public class Hero : ICombatant
     {
         _hp = StartingMaxHp;
         _xp = 0;
+        _xpBoostRemaining = 0;
         _gold = 0;
         Level = StartingLevel;
         BaseAttack = StartingBaseAttack;

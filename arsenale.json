@@ -1,0 +1,16 @@
+[
+  {
+    "Id": 1,
+    "Name": "Ardrùil",
+    "Tipo": "Spada",
+    "Danno": 8,
+    "Rarità": "Non Comune"
+  },
+  {
+    "Id": 2,
+    "Name": "Mitrandhir",
+    "Tipo": "Bastone",
+    "Danno": 6,
+    "Rarità": "Comune"
+  }
+]

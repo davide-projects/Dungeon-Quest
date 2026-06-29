@@ -19,9 +19,9 @@ public static class EnemyFactory
     private static readonly Random Random = new();
     private static readonly List<EnemyEntry> Entries =
     [
-        new(() => new Goblin(), 1, l => l < 2 ? 50 : (100.0 - Math.Min(45, (l - 1) * 5)) / 2),
-        new(() => new Skeleton(), 1, l => l < 2 ? 50 : (100.0 - Math.Min(45, (l - 1) * 5)) / 2),
-        new(() => new Dragon(), 2, l => Math.Min(45, (l - 1) * 5)),
+        new(() => new Goblin(), 1, _ => 40),
+        new(() => new Orc(), 1, _ => 30),
+        new(() => new UrukHai(), 4, _ => 20),
     ];
 
     public static Enemy Generate(int heroLevel)
@@ -31,7 +31,11 @@ public static class EnemyFactory
         double totalWeight = weights.Sum();
 
         if (totalWeight <= 0)
-            return available[0].Create();
+        {
+            var enemy = available[0].Create();
+            enemy.ScaleToLevel(heroLevel);
+            return enemy;
+        }
 
         double roll = Random.NextDouble() * totalWeight;
         double cumulative = 0;
@@ -40,9 +44,15 @@ public static class EnemyFactory
         {
             cumulative += weights[i];
             if (roll < cumulative)
-                return available[i].Create();
+            {
+                var enemy = available[i].Create();
+                enemy.ScaleToLevel(heroLevel);
+                return enemy;
+            }
         }
 
-        return available[^1].Create();
+        var lastEnemy = available[^1].Create();
+        lastEnemy.ScaleToLevel(heroLevel);
+        return lastEnemy;
     }
 }

@@ -117,6 +117,51 @@ public static class GraphicsHelper
         WriteSeparator('=');
     }
 
+    public static void WriteBossVictory(string enemyName, int gold, int xp)
+    {
+        Console.Clear();
+        WriteSeparator('=');
+        var victoryArt = new[]
+        {
+            @"  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+            @"  ~                                                             ~",
+            @"  ~     *******  **    **  ********  *******   *******          ~",
+            @"  ~    /**////**/**   /** **//////  /**////** /**////**         ~",
+            @"  ~    /**   /**//** /** /**        /**   /** /**   /**         ~",
+            @"  ~    /*******  //****  /********* /*******  /*******          ~",
+            @"  ~    /**////    //**   ////////** /**///**  /**///**          ~",
+            @"  ~    /**         /**          /** /**  /**  /**  /**          ~",
+            @"  ~    /**         /**    ********  /**   /** /**   /**         ~",
+            @"  ~    //          //    ////////   //    //  //    //          ~",
+            @"  ~                                                             ~",
+            @"  ~     ********  **      ** ******** ******** ********         ~",
+            @"  ~    /**/////  /**     /**//////// /**///// /**/////          ~",
+            @"  ~    /**       /**     /**       /** /**      /**             ~",
+            @"  ~    /*******  /**     /**      /** /******* /*******         ~",
+            @"  ~    /**////   /**     /**     /**  /**////  /**////          ~",
+            @"  ~    /**       /**     /**    /**   /**      /**             ~",
+            @"  ~    /**       //*******     /********/**      /**             ~",
+            @"  ~    //         ///////      //////// //       //              ~",
+            @"  ~                                                             ~",
+            @"  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+        };
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        foreach (var line in victoryArt)
+        {
+            var pad = (BoxWidth - line.Length) / 2;
+            Console.WriteLine(new string(' ', Math.Max(0, pad)) + line);
+        }
+        Console.ResetColor();
+        Console.WriteLine();
+        WriteSeparator('=');
+        WriteLineColor("  HAI SCONFITTO " + enemyName.ToUpperInvariant() + "!", ConsoleColor.Green);
+        Console.WriteLine("  Ricompensa: " + gold + " oro, " + xp + " XP");
+        WriteSeparator('=');
+        Console.WriteLine();
+        Console.Write("   Premi INVIO per uscire...");
+        Console.ReadLine();
+    }
+
     public static void WriteDefeat()
     {
         Console.WriteLine();
@@ -152,10 +197,25 @@ public static class GraphicsHelper
         Console.WriteLine();
     }
 
+    public static void WriteWeapon(string name, WeaponType type, int damage, WeaponRarity rarity, string prefix = "")
+    {
+        WriteColor(prefix, ConsoleColor.White);
+        WriteColor($"{name} ", ConsoleColor.White);
+        WriteColor($"({type}) ", ConsoleColor.DarkCyan);
+        Console.Write("\u2014 ");
+        WriteColor($"[{rarity}]", GetRarityColor(rarity));
+        WriteColor(" danno ", ConsoleColor.Gray);
+        WriteColor($"{damage}.", ConsoleColor.Cyan);
+        Console.WriteLine();
+    }
+
     public static void WritePotion(Potion potion, string prefix = "")
     {
         WriteColor($"{prefix}{potion.Name} ", ConsoleColor.Green);
-        WriteColor("(cura il 50% della salute massima)", ConsoleColor.DarkGreen);
+        string desc = potion.Kind == PotionKind.XpBoost
+            ? "(moltiplica XP del prossimo combattimento x2)"
+            : "(cura il 50% della salute massima)";
+        WriteColor(desc, potion.Kind == PotionKind.XpBoost ? ConsoleColor.Cyan : ConsoleColor.DarkGreen);
         Console.WriteLine();
     }
 

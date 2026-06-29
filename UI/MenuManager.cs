@@ -12,6 +12,7 @@ public class MenuManager
     private readonly Hero _hero;
     private readonly ArsenalManager _arsenal;
     private readonly CombatManager _combat;
+    private readonly ShopManager _shop;
     private readonly List<IExporter> _exporters;
 
     public MenuManager(DungeonContext db, Hero hero)
@@ -20,12 +21,13 @@ public class MenuManager
         _hero = hero;
         _arsenal = new ArsenalManager(db, hero);
         _combat = new CombatManager(_arsenal);
+        _shop = new ShopManager(_arsenal, hero);
         _exporters = [new CsvExporter(), new JsonExporter()];
     }
 
     public void Run()
     {
-        int choice;
+        int choice = -1;
         do
         {
             try { Console.Clear(); } catch (IOException) { }
@@ -35,19 +37,50 @@ public class MenuManager
             GraphicsHelper.WriteHeroStatus(_hero);
             GraphicsHelper.WriteSeparator('-');
             Console.WriteLine();
-            Console.WriteLine("   1) Aggiungi un'arma all'arsenale");
-            Console.WriteLine("   2) Mostra inventario");
-            Console.WriteLine("   3) Mostra l'arsenale per tipo");
-            Console.WriteLine("   4) Cerca un'arma ed equipaggiala");
-            Console.WriteLine("   5) Modifica un'arma");
-            Console.WriteLine("   6) Combatti contro un nemico");
-            Console.WriteLine("   7) Esporta l'arsenale su file");
+
+            bool canClaim = _hero.Level == 1 && _arsenal.GetAllWeapons().Count == 0;
+            if (canClaim)
+            {
+                GraphicsHelper.WriteLineColor("   R) Raccogli la tua prima arma!", ConsoleColor.Yellow);
+                Console.WriteLine();
+            }
+
+            bool canBoss = _hero.Level >= 10;
+            if (canBoss)
+            {
+                GraphicsHelper.WriteLineColor("   B) AFFRONTA IL BOSS FINALE!", ConsoleColor.Red);
+                Console.WriteLine();
+            }
+
+            Console.WriteLine("   1) Mostra inventario");
+            Console.WriteLine("   2) Mostra l'arsenale per tipo");
+            Console.WriteLine("   3) Cerca un'arma ed equipaggiala");
+            Console.WriteLine("   4) Negozio");
+            Console.WriteLine("   5) Combatti contro un nemico");
+            Console.WriteLine("   6) Esporta l'arsenale su file");
             Console.WriteLine("   0) Torna al menu principale");
             Console.WriteLine();
             GraphicsHelper.WriteSeparator('-');
             Console.Write("   Scelta: ");
 
-            if (!int.TryParse(Console.ReadLine()?.Trim(), out choice))
+            var input = Console.ReadLine()?.Trim().ToLowerInvariant() ?? "";
+
+            if (canClaim && input == "r")
+            {
+                ClaimStarterWeapon();
+                GraphicsHelper.Pause();
+                continue;
+            }
+
+            if (canBoss && input == "b")
+            {
+                BossFight();
+                if (_hero.IsAlive)
+                    GraphicsHelper.Pause();
+                continue;
+            }
+
+            if (!int.TryParse(input, out choice))
             {
                 GraphicsHelper.WriteError("Input non valido. Inserisci un numero.");
                 GraphicsHelper.Pause();
@@ -90,24 +123,21 @@ public class MenuManager
         switch (choice)
         {
             case 1:
-                AddWeapon();
-                break;
-            case 2:
                 ShowAll();
                 break;
-            case 3:
+            case 2:
                 ShowByType();
                 break;
-            case 4:
+            case 3:
                 SearchAndEquip();
                 break;
-            case 5:
-                ModifyWeapon();
+            case 4:
+                Shop();
                 break;
-            case 6:
+            case 5:
                 Fight();
                 break;
-            case 7:
+            case 6:
                 ExportArsenal();
                 break;
             case 0:
@@ -118,66 +148,80 @@ public class MenuManager
         }
     }
 
-    private void AddWeapon()
+    private void ClaimStarterWeapon()
     {
-        Console.Write("Nome arma: ");
-        var name = Console.ReadLine()?.Trim();
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            GraphicsHelper.WriteError("Il nome non può essere vuoto.");
-            return;
-        }
-
-        if (!name.All(char.IsLetter))
-        {
-            GraphicsHelper.WriteError("Il nome può contenere solo caratteri alfabetici.");
-            return;
-        }
-
-        name = GraphicsHelper.Capitalize(name);
+        var template = _shop.GetRandomCommon();
+        var weapon = new Weapon(template.Name, template.Type, template.Damage, template.Rarity);
+        _arsenal.AddWeapon(weapon);
+        _hero.EquippedWeapon = weapon;
+        _db.SaveChanges();
 
         Console.WriteLine();
-        GraphicsHelper.WriteTitle("TIPO ARMA");
-        Console.WriteLine("   " + GraphicsHelper.GetWeaponTypeMenu());
-        Console.Write("   Scegli tipo: ");
-        var typeInput = Console.ReadLine()?.Trim();
-        var typeChoice = GraphicsHelper.ParseWeaponTypeChoice(typeInput ?? "");
-        if (typeChoice < 0)
-        {
-            GraphicsHelper.WriteError("Tipo non valido.");
-            return;
-        }
+        GraphicsHelper.WriteTitle("PRIMA ARMA!");
+        Console.Write("  Hai raccolto: ");
+        GraphicsHelper.WriteWeapon(weapon);
+        Console.WriteLine("  E' stata equipaggiata automaticamente.");
+    }
 
-        var type = WeaponType.All[typeChoice - 1];
+    private void Shop()
+    {
+        var catalog = _shop.GetCatalog();
+        var buyable = catalog.Where(c => !c.Owned).ToList();
 
-        Console.Write("   Danno (numero > 0): ");
-        if (!int.TryParse(Console.ReadLine()?.Trim(), out var damage) || damage <= 0)
+        if (buyable.Count == 0)
         {
-            GraphicsHelper.WriteError("Danno non valido. Deve essere un numero maggiore di zero.");
+            GraphicsHelper.WriteError("Hai gia' tutte le armi disponibili!");
             return;
         }
 
         Console.WriteLine();
-        GraphicsHelper.WriteTitle("RARITÀ");
-        Console.WriteLine("   " + GraphicsHelper.GetRarityMenu());
-        Console.Write("   Scegli rarità: ");
-        var rarityInput = Console.ReadLine()?.Trim();
-        var rarityChoice = GraphicsHelper.ParseRarityChoice(rarityInput ?? "");
-        if (rarityChoice < 0)
+        GraphicsHelper.WriteTitle("NEGOZIO");
+        GraphicsHelper.WriteColor($"  Oro disponibile: ", ConsoleColor.White);
+        GraphicsHelper.WriteLineColor($"{_hero.Gold}", ConsoleColor.Yellow);
+        Console.WriteLine();
+
+        for (int i = 0; i < buyable.Count; i++)
         {
-            GraphicsHelper.WriteError("Rarità non valida.");
+            var (template, _) = buyable[i];
+            Console.Write($"   {i + 1,2}) ");
+            GraphicsHelper.WriteWeapon(template.Name, template.Type, template.Damage, template.Rarity);
+            Console.Write("       Prezzo: ");
+            GraphicsHelper.WriteColor($"{template.Price} oro", ConsoleColor.Yellow);
+            Console.Write(" | ");
+            if (_shop.CanAfford(template))
+                GraphicsHelper.WriteColor("ACQUISTABILE", ConsoleColor.Green);
+            else
+                GraphicsHelper.WriteColor("NON DISPONIBILE", ConsoleColor.Red);
+            Console.WriteLine();
+        }
+
+        Console.WriteLine();
+        Console.Write("   Scegli arma da acquistare (0 per annullare): ");
+
+        if (!int.TryParse(Console.ReadLine()?.Trim(), out var choice) || choice < 0 || choice > buyable.Count)
+        {
+            GraphicsHelper.WriteError("Scelta non valida.");
             return;
         }
 
-        var rarity = WeaponRarity.All[rarityChoice - 1];
+        if (choice == 0)
+        {
+            Console.WriteLine("   Operazione annullata.");
+            return;
+        }
 
-        _arsenal.AddWeapon(name, type, damage, rarity);
+        var selected = buyable[choice - 1].Template;
+
+        if (!_shop.TryBuy(selected))
+        {
+            GraphicsHelper.WriteError("Oro insufficiente!");
+            return;
+        }
+
         Console.Write("   >> ");
-        GraphicsHelper.WriteColor("Arma '", ConsoleColor.Green);
-        GraphicsHelper.WriteColor(name, ConsoleColor.White);
-        GraphicsHelper.WriteColor("' (", ConsoleColor.Green);
-        GraphicsHelper.WriteColor($"{rarity}", GraphicsHelper.GetRarityColor(rarity));
-        GraphicsHelper.WriteColor(") aggiunta all'arsenale!", ConsoleColor.Green);
+        GraphicsHelper.WriteColor("Acquistata: ", ConsoleColor.Green);
+        GraphicsHelper.WriteWeapon(selected.Name, selected.Type, selected.Damage, selected.Rarity);
+        GraphicsHelper.WriteColor($"   Oro rimasto: {_hero.Gold}", ConsoleColor.Yellow);
         Console.WriteLine();
     }
 
@@ -201,6 +245,13 @@ public class MenuManager
             GraphicsHelper.WriteTitle($"POZIONI ({potions.Count})");
             foreach (var potion in potions)
                 GraphicsHelper.WritePotion(potion, "  * ");
+            Console.WriteLine();
+        }
+
+        if (_hero.XpBoostRemaining > 0)
+        {
+            GraphicsHelper.WriteColor("  Potenziamento XP: ", ConsoleColor.Cyan);
+            GraphicsHelper.WriteColor($"{_hero.XpBoostRemaining} combattimento(i) rimasto(i)", ConsoleColor.Cyan);
             Console.WriteLine();
         }
 
@@ -236,132 +287,54 @@ public class MenuManager
 
     private void SearchAndEquip()
     {
-        var weapon = SearchAndChooseWeapon("da equipaggiare");
-        if (weapon is null)
-            return;
+        var weapons = _arsenal.GetAllWeapons();
 
-        _hero.EquippedWeapon = weapon;
-        Console.Write("   >> ");
-        GraphicsHelper.WriteColor("Equipaggiata: ", ConsoleColor.Green);
-        GraphicsHelper.WriteWeapon(weapon);
-    }
-
-    private void ModifyWeapon()
-    {
-        var weapon = SearchAndChooseWeapon("da modificare");
-        if (weapon is null)
-            return;
-
-        Console.WriteLine();
-        GraphicsHelper.WriteTitle($"MODIFICA: {weapon.Name}");
-
-        Console.Write($"   Nome [{weapon.Name}]: ");
-        var newName = Console.ReadLine()?.Trim();
-        if (string.IsNullOrWhiteSpace(newName))
-            newName = weapon.Name;
-        else if (!newName.All(char.IsLetter))
+        if (weapons.Count == 0)
         {
-            GraphicsHelper.WriteError("Il nome può contenere solo caratteri alfabetici.");
-            return;
-        }
-        else
-            newName = GraphicsHelper.Capitalize(newName);
-
-        Console.WriteLine();
-        GraphicsHelper.WriteTitle("NUOVO TIPO");
-        Console.WriteLine("   " + GraphicsHelper.GetWeaponTypeMenu());
-        Console.Write($"   Scegli tipo [{weapon.Type}]: ");
-        var typeInput = Console.ReadLine()?.Trim();
-        WeaponType newType;
-        if (string.IsNullOrWhiteSpace(typeInput))
-            newType = weapon.Type;
-        else
-        {
-            var typeChoice = GraphicsHelper.ParseWeaponTypeChoice(typeInput);
-            if (typeChoice < 0)
-            {
-                GraphicsHelper.WriteError("Tipo non valido.");
-                return;
-            }
-            newType = WeaponType.All[typeChoice - 1];
-        }
-
-        Console.Write($"   Danno [{weapon.Damage}]: ");
-        var damageInput = Console.ReadLine()?.Trim();
-        int newDamage;
-        if (string.IsNullOrWhiteSpace(damageInput))
-            newDamage = weapon.Damage;
-        else if (!int.TryParse(damageInput, out newDamage) || newDamage <= 0)
-        {
-            GraphicsHelper.WriteError("Danno non valido. Deve essere un numero maggiore di zero.");
+            GraphicsHelper.WriteError("Nessuna arma nell'arsenale.");
             return;
         }
 
         Console.WriteLine();
-        GraphicsHelper.WriteTitle("NUOVA RARITÀ");
-        Console.WriteLine("   " + GraphicsHelper.GetRarityMenu());
-        Console.Write($"   Scegli rarità [{weapon.Rarity}]: ");
-        var rarityInput = Console.ReadLine()?.Trim();
-        WeaponRarity newRarity;
-        if (string.IsNullOrWhiteSpace(rarityInput))
-            newRarity = weapon.Rarity;
-        else
+        GraphicsHelper.WriteTitle("CAMBIA ARMA");
+        GraphicsHelper.WriteLineColor($"   Arma equipaggiata: {_hero.EquippedWeapon?.Name ?? "a mani nude"}", ConsoleColor.Cyan);
+        Console.WriteLine();
+
+        for (int i = 0; i < weapons.Count; i++)
         {
-            var rarityChoice = GraphicsHelper.ParseRarityChoice(rarityInput);
-            if (rarityChoice < 0)
-            {
-                GraphicsHelper.WriteError("Rarità non valida.");
-                return;
-            }
-            newRarity = WeaponRarity.All[rarityChoice - 1];
+            string marker = weapons[i].Id == _hero.EquippedWeapon?.Id ? "\u2190 equipaggiata" : "";
+            GraphicsHelper.WriteWeapon(weapons[i], $"   {i + 1}) ");
+            if (!string.IsNullOrEmpty(marker))
+                GraphicsHelper.WriteLineColor(marker, ConsoleColor.Green);
         }
-
-        _arsenal.UpdateWeapon(weapon, newName, newType, newDamage, newRarity);
-        GraphicsHelper.WriteSuccess($"Arma '{newName}' aggiornata!");
-    }
-
-    private Weapon? SearchAndChooseWeapon(string action)
-    {
-        Console.Write("   Nome o parte del nome da cercare: ");
-        var name = Console.ReadLine()?.Trim();
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            GraphicsHelper.WriteError("Nome non valido.");
-            return null;
-        }
-
-        var results = _arsenal.FindAllByName(name);
-
-        if (results.Count == 0)
-        {
-            GraphicsHelper.WriteError($"Nessuna arma trovata con nome '{name}'.");
-            return null;
-        }
-
-        if (results.Count == 1)
-            return results[0];
 
         Console.WriteLine();
-        GraphicsHelper.WriteTitle($"RISULTATI TROVATI ({results.Count})");
-        for (int i = 0; i < results.Count; i++)
-            GraphicsHelper.WriteWeapon(results[i], $"   {i + 1}) ");
+        Console.Write("   Scegli un'arma da equipaggiare (0 per annullare): ");
 
-        Console.WriteLine();
-        Console.Write($"   Scegli un'arma {action} (0 per annullare): ");
-
-        if (!int.TryParse(Console.ReadLine()?.Trim(), out var choice) || choice < 0 || choice > results.Count)
+        if (!int.TryParse(Console.ReadLine()?.Trim(), out var choice) || choice < 0 || choice > weapons.Count)
         {
             GraphicsHelper.WriteError("Scelta non valida.");
-            return null;
+            return;
         }
 
         if (choice == 0)
         {
             Console.WriteLine("   Operazione annullata.");
-            return null;
+            return;
         }
 
-        return results[choice - 1];
+        var selected = weapons[choice - 1];
+
+        if (selected.Id == _hero.EquippedWeapon?.Id)
+        {
+            GraphicsHelper.WriteCombatAction("Arma gia' equipaggiata.", ConsoleColor.DarkYellow);
+            return;
+        }
+
+        _hero.EquippedWeapon = selected;
+        Console.Write("   >> ");
+        GraphicsHelper.WriteColor("Equipaggiata: ", ConsoleColor.Green);
+        GraphicsHelper.WriteWeapon(selected);
     }
 
     private void Fight()
@@ -384,9 +357,23 @@ public class MenuManager
         switch (outcome)
         {
             case CombatResult.Victory:
-                GraphicsHelper.WriteVictory(enemy.Name, enemy.GoldReward, enemy.XpReward);
-                _hero.AddReward(enemy.GoldReward, enemy.XpReward);
+                int xpReward = enemy.XpReward;
+                if (_hero.XpBoostRemaining > 0)
+                {
+                    xpReward *= 2;
+                    _hero.XpBoostRemaining--;
+                    GraphicsHelper.WriteCombatAction("Bonus XP attivo! XP raddoppiati!", ConsoleColor.Cyan);
+                }
+                GraphicsHelper.WriteVictory(enemy.Name, enemy.GoldReward, xpReward);
+                _hero.AddReward(enemy.GoldReward, xpReward);
                 _db.SaveChanges();
+
+                string healMsg = enemy.OnDefeated(_hero);
+                if (!string.IsNullOrEmpty(healMsg))
+                {
+                    GraphicsHelper.WriteCombatAction(healMsg, ConsoleColor.Green);
+                    _db.SaveChanges();
+                }
 
                 if (_hero.LevelUpMessage is not null)
                 {
@@ -399,6 +386,71 @@ public class MenuManager
                     GraphicsHelper.WriteSuccess("Hai ottenuto una Pozione curativa!");
                     _arsenal.AddPotion(new Potion("Pozione curativa"));
                 }
+
+                if (enemy.TryDropXpBoostPotion())
+                {
+                    _hero.XpBoostRemaining++;
+                    GraphicsHelper.WriteSuccess("Potenziamento XP attivo! Il prossimo combattimento darà XP doppi!");
+                }
+                break;
+            case CombatResult.Defeat:
+                GraphicsHelper.WriteDefeat();
+                break;
+            case CombatResult.Flee:
+                GraphicsHelper.WriteFlee();
+                break;
+        }
+
+        Console.WriteLine();
+        Console.Write("  ");
+        GraphicsHelper.WriteHeroStatus(_hero);
+    }
+
+    private void BossFight()
+    {
+        if (!_hero.IsAlive)
+        {
+            GraphicsHelper.WriteError("L'eroe è a terra! Non può combattere.");
+            return;
+        }
+
+        Console.WriteLine();
+        GraphicsHelper.WriteTitle("BOSS FINALE");
+        GraphicsHelper.WriteColor("  Sei sicuro di voler affrontare Sauron?", ConsoleColor.Red);
+        Console.WriteLine();
+        Console.Write("   (s/N): ");
+        if (Console.ReadLine()?.Trim().ToLowerInvariant() != "s")
+        {
+            Console.WriteLine("   Saggio... forse un giorno sarai pronto.");
+            return;
+        }
+
+        var boss = new Sauron();
+        GraphicsHelper.WriteTitle("SAURON");
+        Console.WriteLine(boss.AsciiArt);
+        Console.WriteLine();
+        GraphicsHelper.WriteLineColor("  " + boss.EncounterText, ConsoleColor.Red);
+        GraphicsHelper.Pause();
+
+        var outcome = _combat.Fight(_hero, boss);
+
+        switch (outcome)
+        {
+            case CombatResult.Victory:
+                int xpReward = boss.XpReward;
+                if (_hero.XpBoostRemaining > 0)
+                {
+                    xpReward *= 2;
+                    _hero.XpBoostRemaining--;
+                    GraphicsHelper.WriteCombatAction("Bonus XP attivo! XP raddoppiati!", ConsoleColor.Cyan);
+                }
+                _hero.AddReward(boss.GoldReward, xpReward);
+                _db.SaveChanges();
+                string healMsg = boss.OnDefeated(_hero);
+                if (!string.IsNullOrEmpty(healMsg))
+                    _db.SaveChanges();
+                GraphicsHelper.WriteBossVictory(boss.Name, boss.GoldReward, xpReward);
+                Environment.Exit(0);
                 break;
             case CombatResult.Defeat:
                 GraphicsHelper.WriteDefeat();
