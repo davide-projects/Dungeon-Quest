@@ -4,6 +4,7 @@ namespace DungeonQuest.Models;
 
 public abstract class Enemy : ICombatant
 {
+    private static readonly Random SharedRandom = new();
     private int _hp;
 
     public string Name { get; }
@@ -21,6 +22,10 @@ public abstract class Enemy : ICombatant
 
     public int AttackPower => Attack;
     public bool IsAlive => Hp > 0;
+
+    public abstract string AsciiArt { get; }
+    public abstract string EncounterText { get; }
+    public virtual double PotionDropChance => 0.15;
 
     protected Enemy(string name, int hp, int attack, int goldReward, int xpReward, IAttackBehavior attackBehavior)
     {
@@ -41,5 +46,12 @@ public abstract class Enemy : ICombatant
     public string GetStatus()
     {
         return $"{Name} — HP: {Hp}/{MaxHp}";
+    }
+
+    public virtual bool TryDropPotion()
+    {
+        if (SharedRandom.NextDouble() < PotionDropChance)
+            return true;
+        return false;
     }
 }

@@ -1,49 +1,49 @@
 using System.ComponentModel.DataAnnotations.Schema;
-using DungeonQuest.Utilities;
 
 namespace DungeonQuest.Models;
 
-[Table("incantesimi")]
+[Table("spells")]
 public class Spell
 {
     private string _name = string.Empty;
     private int _damage;
 
     [Column("id")]
-    public int Id { get; }
+    public int Id { get; set; }
 
-    [Column("nome")]
+    [Column("name")]
     public string Name
     {
         get => _name;
         private set
         {
             if (string.IsNullOrWhiteSpace(value))
-                throw new ArgumentException("Il nome dell'incantesimo non può essere vuoto.");
+                throw new ArgumentException("Spell name cannot be empty.");
 
             _name = value.Trim();
         }
     }
 
-    [Column("danno")]
+    [Column("damage")]
     public int Damage
     {
         get => _damage;
         private set
         {
             if (value <= 0)
-                throw new ArgumentException("Il danno dell'incantesimo deve essere maggiore di zero.");
+                throw new ArgumentException("Spell damage must be greater than zero.");
 
             _damage = value;
         }
     }
 
-    [Column("appreso")]
+    [Column("is_learned")]
     public bool IsLearned { get; set; }
+
+    private Spell() { _name = null!; }
 
     public Spell(string name, int damage)
     {
-        Id = IdGenerator.NextSpellId();
         Name = name;
         Damage = damage;
         IsLearned = false;
@@ -51,7 +51,7 @@ public class Spell
 
     public override string ToString()
     {
-        string stato = IsLearned ? "appreso" : "non appreso";
-        return $"#{Id} {Name} — danno {Damage} ({stato}).";
+        string status = IsLearned ? "learned" : "not learned";
+        return $"#{Id} {Name} — damage {Damage} ({status}).";
     }
 }

@@ -43,7 +43,7 @@ public class ArsenalManager
 
         if (_hero.Hp >= _hero.MaxHp)
         {
-            GraphicsHelper.WriteCombatAction($"{_hero.Name} è già in piena forma! Usare una pozione ora sarebbe uno spreco.", ConsoleColor.DarkYellow);
+            GraphicsHelper.WriteCombatAction($"{_hero.Name} \u00e8 gi\u00e0 in piena forma! Usare una pozione ora sarebbe uno spreco.", ConsoleColor.DarkYellow);
             return false;
         }
 
@@ -62,7 +62,7 @@ public class ArsenalManager
         _db.SaveChanges();
     }
 
-    public void AddWeapon(string name, WeaponType type, int damage, WeaponRarity rarity = WeaponRarity.Common)
+    public void AddWeapon(string name, WeaponType type, int damage, WeaponRarity rarity)
     {
         var weapon = new Weapon(name, type, damage, rarity)
         {
@@ -76,7 +76,7 @@ public class ArsenalManager
     {
         return _db.Weapons
             .Where(w => w.HeroId == _hero.Id)
-            .OrderBy(w => w.Code)
+            .OrderBy(w => w.Id)
             .ToList();
     }
 
@@ -84,7 +84,7 @@ public class ArsenalManager
     {
         return _db.Weapons
             .Where(w => w.HeroId == _hero.Id && w.Type == type)
-            .OrderBy(w => w.Code)
+            .OrderBy(w => w.Id)
             .ToList();
     }
 
@@ -103,7 +103,7 @@ public class ArsenalManager
     {
         return _db.Weapons
             .Where(w => w.HeroId == _hero.Id && EF.Functions.Like(w.Name, $"%{name}%"))
-            .OrderBy(w => w.Code)
+            .OrderBy(w => w.Id)
             .ToList();
     }
 
@@ -141,14 +141,4 @@ public class ArsenalManager
         _db.SaveChanges();
     }
 
-    public void SaveToCsv(string filePath)
-    {
-        var weapons = GetAllWeapons();
-        using var writer = new StreamWriter(filePath);
-
-        writer.WriteLine("Codice;Nome;Tipo;Danno;Rarità;");
-
-        foreach (var weapon in weapons)
-            writer.WriteLine($"{weapon.Code};{weapon.Name};{weapon.Type};{weapon.Damage};{weapon.Rarity};");
-    }
 }

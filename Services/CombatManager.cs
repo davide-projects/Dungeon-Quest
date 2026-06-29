@@ -31,7 +31,7 @@ public class CombatManager
         while (hero.IsAlive && enemy.IsAlive)
         {
             GraphicsHelper.WriteCombatHeader(hero.Name, enemy.Name, hero.Hp, hero.MaxHp, enemy.Hp, enemy.MaxHp);
-            Console.WriteLine(GraphicsHelper.GetEnemyArt(enemy.Name));
+            Console.WriteLine(enemy.AsciiArt);
             Console.WriteLine();
 
             var input = ReadChoice(hero);

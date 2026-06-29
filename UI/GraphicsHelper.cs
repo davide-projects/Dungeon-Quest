@@ -1,3 +1,5 @@
+using DungeonQuest.Models;
+
 namespace DungeonQuest.UI;
 
 public static class GraphicsHelper
@@ -29,7 +31,7 @@ public static class GraphicsHelper
         var pad = (BoxWidth - title.Length) / 2;
         var left = pad > 0 ? pad : 0;
         var right = BoxWidth - title.Length - left;
-        Console.WriteLine("║" + new string(' ', left) + title + new string(' ', right) + "║");
+        Console.WriteLine("\u2551" + new string(' ', left) + title + new string(' ', right) + "\u2551");
         WriteSeparator('=');
     }
 
@@ -47,16 +49,16 @@ public static class GraphicsHelper
     public static void WriteMenuTitle()
     {
         WriteSeparator('=');
-        Console.WriteLine("╔" + new string('=', BoxWidth - 2) + "╗");
-        var title = "§ § §  DUNGEON QUEST  § § §";
+        Console.WriteLine("\u2554" + new string('=', BoxWidth - 2) + "\u2557");
+        var title = "\u00a7 \u00a7 \u00a7  DUNGEON QUEST  \u00a7 \u00a7 \u00a7";
         var subtitle = ">>  Avventura testuale  <<";
         var pad1 = (BoxWidth - title.Length) / 2;
         var pad2 = (BoxWidth - subtitle.Length) / 2;
-        Console.WriteLine("║" + new string(' ', BoxWidth - 2) + "║");
-        Console.WriteLine("║" + new string(' ', pad1) + title + new string(' ', BoxWidth - 2 - pad1 - title.Length) + "║");
-        Console.WriteLine("║" + new string(' ', pad2) + subtitle + new string(' ', BoxWidth - 2 - pad2 - subtitle.Length) + "║");
-        Console.WriteLine("║" + new string(' ', BoxWidth - 2) + "║");
-        Console.WriteLine("╚" + new string('=', BoxWidth - 2) + "╝");
+        Console.WriteLine("\u2551" + new string(' ', BoxWidth - 2) + "\u2551");
+        Console.WriteLine("\u2551" + new string(' ', pad1) + title + new string(' ', BoxWidth - 2 - pad1 - title.Length) + "\u2551");
+        Console.WriteLine("\u2551" + new string(' ', pad2) + subtitle + new string(' ', BoxWidth - 2 - pad2 - subtitle.Length) + "\u2551");
+        Console.WriteLine("\u2551" + new string(' ', BoxWidth - 2) + "\u2551");
+        Console.WriteLine("\u255a" + new string('=', BoxWidth - 2) + "\u255d");
         WriteSeparator('=');
     }
 
@@ -73,65 +75,18 @@ public static class GraphicsHelper
         Console.BackgroundColor = current > max / 2 ? ConsoleColor.Green :
                                    current > max / 4 ? ConsoleColor.DarkYellow :
                                    ConsoleColor.Red;
-        Console.Write(new string('█', filled));
+        Console.Write(new string('\u2588', filled));
         Console.BackgroundColor = ConsoleColor.DarkGray;
-        Console.Write(new string('▓', barLength - filled));
+        Console.Write(new string('\u2593', barLength - filled));
         Console.BackgroundColor = prevBg;
         Console.Write("]");
-    }
-
-    public static string GetEnemyArt(string enemyName)
-    {
-        return enemyName.ToLowerInvariant() switch
-        {
-            "goblin" => @"
-               .-.
-              /   \
-             | .-. |
-             | |_| |
-              `---'
-              _/   \_",
-            "scheletro" => @"
-               .-.
-              /ooo\
-             | .-. |
-             | |_| |
-              `---'
-               | |
-              /   \",
-            
-            "drago" => @"
-              /\___/\
-             /       \
-            | '-' '-' |
-            \    w    /
-             \  ===  /
-              `-----`",
-            
-            _ => @"
-               .-.
-              (o o)
-              | O |
-              `---'"
-        };
-    }
-
-    public static string GetEnemyEncounterText(string enemyName)
-    {
-        return enemyName.ToLowerInvariant() switch
-        {
-            "goblin" => "Un Goblin furtivo esce dalle ombre!",
-            "scheletro" => "Uno Scheletro risorge dal suolo!",
-            "drago" => "Un imponente Drago atterra davanti a te!",
-            _ => $"Un {enemyName} appare!"
-        };
     }
 
     public static void WriteCombatHeader(string heroName, string enemyName, int heroHp, int heroMaxHp, int enemyHp, int enemyMaxHp)
     {
         Console.Clear();
         WriteSeparator('=');
-        WriteColor(" § § §  COMBATTIMENTO  § § §", ConsoleColor.Red);
+        WriteColor(" \u00a7 \u00a7 \u00a7  COMBATTIMENTO  \u00a7 \u00a7 \u00a7", ConsoleColor.Red);
         Console.WriteLine();
         WriteSeparator('=');
         Console.WriteLine();
@@ -210,6 +165,50 @@ public static class GraphicsHelper
         return char.ToUpper(input[0]) + input.Substring(1);
     }
 
-    public const string WeaponTypeMenu = "   1) Spada   2) Arco   3) Ascia   4) Bastone   5) Pugnale";
-    public const string RarityMenu = "   1) Comune   2) Non Comune   3) Raro   4) Epico   5) Leggendario";
+    public static string GetWeaponTypeMenu()
+    {
+        int i = 1;
+        return string.Join("   ", WeaponType.All.Select(wt => $"{i++}) {wt.DisplayName}"));
+    }
+
+    public static string GetRarityMenu()
+    {
+        int i = 1;
+        return string.Join("   ", WeaponRarity.All.Select(r => $"{i++}) {r.DisplayName}"));
+    }
+
+    public static int WeaponTypeCount => WeaponType.All.Count;
+    public static int WeaponRarityCount => WeaponRarity.All.Count;
+
+    public static int ParseWeaponTypeChoice(string input)
+    {
+        if (!int.TryParse(input, out var choice))
+            return -1;
+        if (choice < 1 || choice > WeaponType.All.Count)
+            return -1;
+        return choice;
+    }
+
+    public static int ParseRarityChoice(string input)
+    {
+        if (!int.TryParse(input, out var choice))
+            return -1;
+        if (choice < 1 || choice > WeaponRarity.All.Count)
+            return -1;
+        return choice;
+    }
+
+    public static WeaponType? GetWeaponTypeFromChoice(int choice)
+    {
+        if (choice < 1 || choice > WeaponType.All.Count)
+            return null;
+        return WeaponType.All[choice - 1];
+    }
+
+    public static WeaponRarity? GetRarityFromChoice(int choice)
+    {
+        if (choice < 1 || choice > WeaponRarity.All.Count)
+            return null;
+        return WeaponRarity.All[choice - 1];
+    }
 }

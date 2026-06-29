@@ -53,7 +53,7 @@ public class Hero : ICombatant
     public bool IsAlive => Hp > 0;
 
     [NotMapped]
-    public string? LevelUpMessage { get; private set; }
+    public string? LevelUpMessage { get; set; }
 
     private Hero() { Name = null!; }
 

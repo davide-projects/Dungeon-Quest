@@ -6,10 +6,8 @@ public class Weapon
 {
     private string _name = string.Empty;
     private int _damage;
-    private WeaponType _type;
-    private WeaponRarity _rarity;
 
-    public int Code { get; }
+    public int Id { get; }
 
     public int? HeroId { get; set; }
     public Hero? Hero { get; set; }
@@ -28,29 +26,9 @@ public class Weapon
         }
     }
 
-    public WeaponType Type
-    {
-        get => _type;
-        private set
-        {
-            if (!Enum.IsDefined(typeof(WeaponType), value))
-                throw new InvalidWeaponTypeException($"Tipo '{value}' non valido. Valori validi: Spada(1), Arco(2), Ascia(3), Bastone(4), Pugnale(5).");
+    public WeaponType Type { get; private set; } = null!;
 
-            _type = value;
-        }
-    }
-
-    public WeaponRarity Rarity
-    {
-        get => _rarity;
-        private set
-        {
-            if (!Enum.IsDefined(typeof(WeaponRarity), value))
-                throw new InvalidWeaponRarityException($"Rarità '{value}' non valida. Valori validi: Comune, NonComune, Raro, Epico, Leggendario.");
-
-            _rarity = value;
-        }
-    }
+    public WeaponRarity Rarity { get; private set; } = null!;
 
     public int Damage
     {
@@ -64,29 +42,29 @@ public class Weapon
         }
     }
 
-    public Weapon(string name, WeaponType type, int damage, WeaponRarity rarity = WeaponRarity.Common)
+    public Weapon(string name, WeaponType type, int damage, WeaponRarity rarity)
     {
         Name = name;
-        Type = type;
+        Type = type ?? throw new ArgumentNullException(nameof(type));
         Damage = damage;
-        Rarity = rarity;
+        Rarity = rarity ?? throw new ArgumentNullException(nameof(rarity));
     }
 
-    internal Weapon(int code, string name, WeaponType type, int damage, WeaponRarity rarity = WeaponRarity.Common) : this(name, type, damage, rarity)
+    internal Weapon(int id, string name, WeaponType type, int damage, WeaponRarity rarity) : this(name, type, damage, rarity)
     {
-        Code = code;
+        Id = id;
     }
 
     public void Update(string name, WeaponType type, int damage, WeaponRarity rarity)
     {
         Name = name;
-        Type = type;
+        Type = type ?? throw new ArgumentNullException(nameof(type));
         Damage = damage;
-        Rarity = rarity;
+        Rarity = rarity ?? throw new ArgumentNullException(nameof(rarity));
     }
 
     public override string ToString()
     {
-        return $"#{Code} {Name} ({Type}) — [{Rarity}] danno {Damage}.";
+        return $"#{Id} {Name} ({Type}) \u2014 [{Rarity}] danno {Damage}.";
     }
 }

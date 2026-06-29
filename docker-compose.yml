@@ -19,6 +19,8 @@ services:
   app:
     build: .
     container_name: dungeonquest-app
+    stdin_open: true
+    tty: true
     restart: unless-stopped
     environment:
       CONNECTION_STRING: ${CONNECTION_STRING}

@@ -81,19 +81,27 @@ DungeonQuest/
 │   ├── Hero.cs             ← eroe (max livello 10)
 │   ├── Enemy.cs            ← nemico astratto
 │   ├── Goblin.cs / Skeleton.cs / Dragon.cs
+│   ├── EnemyFactory.cs       ← factory registry per generare nemici
+│   ├── WeaponType.cs         ← value object (sostituisce enum)
+│   └── WeaponRarity.cs       ← value object (sostituisce enum)
 │   ├── Weapon.cs           ← arma con tipo, rarità, danno
 │   ├── Potion.cs           ← pozione curativa
-│   └── Spell.cs            ← incantesimo (riservato)
+│   ├── Spell.cs            ← spell (reserved)
+│   └── *AttackBehavior.cs  ← 3 implementazioni attacco nemico
+├── Interfaces/
+│   └── IExporter.cs         ← interfaccia esportazione (Strategy)
 ├── Services/
-│   ├── CombatManager.cs    ← loop combattimento a turni
-│   └── ArsenalManager.cs   ← gestione armi, pozioni, CSV
+│   ├── CombatManager.cs     ← loop combattimento a turni
+│   ├── ArsenalManager.cs    ← gestione armi, pozioni
+│   ├── CsvExporter.cs       ← esportazione CSV (IExporter)
+│   └── JsonExporter.cs      ← esportazione JSON (IExporter)
 ├── UI/
 │   ├── GraphicsHelper.cs   ← stili, health bar, ASCII art
 │   ├── MenuManager.cs      ← menu principale
 │   └── Welcome.cs          ← creazione nuovo eroe
 ├── db/
 │   └── DungeonContext.cs   ← DbContext EF Core (MySQL)
-└── Exceptions/             ← gerarchia eccezioni armi
+└── Exceptions/             ← gerarchia eccezioni (armi, export)
 ```
 
 ### Database
@@ -106,3 +114,6 @@ Credenziali configurabili nel file `.env`.
 ### Design pattern
 - **Strategy** (`IAttackBehavior`): tre comportamenti d'attacco per i nemici
 - **Template Method** (`Enemy`): classe astratta con sottoclassi concrete
+- **Registry** (`EnemyFactory`): registro estensibile per generare nemici in modo OCP-compliant
+- **Value Object** (`WeaponType`, `WeaponRarity`): classi aperte all'estensione (sostituiscono enum) con registry interno
+- **Strategy** (`IExporter`): esportatori intercambiabili (CSV, JSON) selezionabili a runtime

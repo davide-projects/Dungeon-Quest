@@ -1,5 +1,6 @@
 ﻿using DungeonQuest.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace DungeonQuest.db;
 
@@ -8,6 +9,7 @@ public class DungeonContext : DbContext
     public DbSet<Weapon> Weapons { get; set; }
     public DbSet<Hero> Heroes { get; set; }
     public DbSet<Potion> Potions { get; set; }
+    public DbSet<Spell> Spells { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder options)
     {
@@ -18,6 +20,14 @@ public class DungeonContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        var weaponTypeConverter = new ValueConverter<WeaponType, int>(
+            v => v.Id,
+            v => WeaponType.FromId(v));
+
+        var weaponRarityConverter = new ValueConverter<WeaponRarity, int>(
+            v => v.Id,
+            v => WeaponRarity.FromId(v));
+
         modelBuilder.Entity<Hero>(entity =>
         {
             entity.HasKey(h => h.Id);
@@ -43,8 +53,15 @@ public class DungeonContext : DbContext
 
         modelBuilder.Entity<Weapon>(entity =>
         {
-            entity.HasKey(w => w.Code);
+            entity.HasKey(w => w.Id);
+            entity.Property(w => w.Id)
+                  .HasColumnName("id")
+                  .ValueGeneratedOnAdd();
+            entity.Property(w => w.Type)
+                  .HasConversion(weaponTypeConverter)
+                  .IsRequired();
             entity.Property(w => w.Rarity)
+                  .HasConversion(weaponRarityConverter)
                   .HasDefaultValue(WeaponRarity.Common);
         });
 
@@ -57,6 +74,13 @@ public class DungeonContext : DbContext
                   .WithMany()
                   .HasForeignKey(p => p.HeroId)
                   .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Spell>(entity =>
+        {
+            entity.HasKey(s => s.Id);
+            entity.Property(s => s.Id).ValueGeneratedOnAdd();
+            entity.Property(s => s.Name).IsRequired();
         });
     }
 }

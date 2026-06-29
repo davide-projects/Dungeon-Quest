@@ -1,5 +1,6 @@
 using DungeonQuest.db;
 using DungeonQuest.Exceptions;
+using DungeonQuest.Interfaces;
 using DungeonQuest.Models;
 using DungeonQuest.Services;
 
@@ -11,13 +12,7 @@ public class MenuManager
     private readonly Hero _hero;
     private readonly ArsenalManager _arsenal;
     private readonly CombatManager _combat;
-    private static readonly Random _random = new();
-
-    private const double DragonPotionDropChance = 0.70;
-    private const double NormalPotionDropChance = 0.15;
-    private const int DragonMinLevel = 2;
-    private const int MaxDragonChance = 45;
-    private const int DragonChancePerLevel = 5;
+    private readonly List<IExporter> _exporters;
 
     public MenuManager(DungeonContext db, Hero hero)
     {
@@ -25,6 +20,7 @@ public class MenuManager
         _hero = hero;
         _arsenal = new ArsenalManager(db, hero);
         _combat = new CombatManager(_arsenal);
+        _exporters = [new CsvExporter(), new JsonExporter()];
     }
 
     public void Run()
@@ -47,7 +43,7 @@ public class MenuManager
             Console.WriteLine("   4) Cerca un'arma ed equipaggiala");
             Console.WriteLine("   5) Modifica un'arma");
             Console.WriteLine("   6) Combatti contro un nemico");
-            Console.WriteLine("   7) Salva l'arsenale su file (CSV)");
+            Console.WriteLine("   7) Esporta l'arsenale su file");
             Console.WriteLine("   0) Torna al menu principale");
             Console.WriteLine();
             GraphicsHelper.WriteSeparator('-');
@@ -64,6 +60,10 @@ public class MenuManager
             try
             {
                 HandleChoice(choice);
+            }
+            catch (ExportException ex)
+            {
+                GraphicsHelper.WriteError(ex.Message);
             }
             catch (WeaponNotFoundException ex)
             {
@@ -110,7 +110,7 @@ public class MenuManager
                 Fight();
                 break;
             case 7:
-                SaveCsv();
+                ExportArsenal();
                 break;
             case 0:
                 break;
@@ -140,15 +140,17 @@ public class MenuManager
 
         Console.WriteLine();
         GraphicsHelper.WriteTitle("TIPO ARMA");
-        Console.WriteLine(GraphicsHelper.WeaponTypeMenu);
+        Console.WriteLine("   " + GraphicsHelper.GetWeaponTypeMenu());
         Console.Write("   Scegli tipo: ");
-        if (!int.TryParse(Console.ReadLine()?.Trim(), out var typeChoice) || typeChoice < 1 || typeChoice > 5)
+        var typeInput = Console.ReadLine()?.Trim();
+        var typeChoice = GraphicsHelper.ParseWeaponTypeChoice(typeInput ?? "");
+        if (typeChoice < 0)
         {
             GraphicsHelper.WriteError("Tipo non valido.");
             return;
         }
 
-        var type = (WeaponType)typeChoice;
+        var type = WeaponType.All[typeChoice - 1];
 
         Console.Write("   Danno (numero > 0): ");
         if (!int.TryParse(Console.ReadLine()?.Trim(), out var damage) || damage <= 0)
@@ -159,15 +161,17 @@ public class MenuManager
 
         Console.WriteLine();
         GraphicsHelper.WriteTitle("RARITÀ");
-        Console.WriteLine(GraphicsHelper.RarityMenu);
+        Console.WriteLine("   " + GraphicsHelper.GetRarityMenu());
         Console.Write("   Scegli rarità: ");
-        if (!int.TryParse(Console.ReadLine()?.Trim(), out var rarityChoice) || rarityChoice < 1 || rarityChoice > 5)
+        var rarityInput = Console.ReadLine()?.Trim();
+        var rarityChoice = GraphicsHelper.ParseRarityChoice(rarityInput ?? "");
+        if (rarityChoice < 0)
         {
             GraphicsHelper.WriteError("Rarità non valida.");
             return;
         }
 
-        var rarity = (WeaponRarity)(rarityChoice - 1);
+        var rarity = WeaponRarity.All[rarityChoice - 1];
 
         _arsenal.AddWeapon(name, type, damage, rarity);
         GraphicsHelper.WriteSuccess($"Arma '{name}' ({rarity}) aggiunta all'arsenale!");
@@ -202,15 +206,17 @@ public class MenuManager
     {
         Console.WriteLine();
         GraphicsHelper.WriteTitle("TIPO ARMA");
-        Console.WriteLine(GraphicsHelper.WeaponTypeMenu);
+        Console.WriteLine("   " + GraphicsHelper.GetWeaponTypeMenu());
         Console.Write("   Inserisci tipo: ");
-        if (!int.TryParse(Console.ReadLine()?.Trim(), out var typeChoice) || typeChoice < 1 || typeChoice > 5)
+        var typeInput = Console.ReadLine()?.Trim();
+        var typeChoice = GraphicsHelper.ParseWeaponTypeChoice(typeInput ?? "");
+        if (typeChoice < 0)
         {
             GraphicsHelper.WriteError("Tipo non valido.");
             return;
         }
 
-        var type = (WeaponType)typeChoice;
+        var type = WeaponType.All[typeChoice - 1];
         var weapons = _arsenal.GetWeaponsByType(type);
 
         if (weapons.Count == 0)
@@ -255,19 +261,22 @@ public class MenuManager
 
         Console.WriteLine();
         GraphicsHelper.WriteTitle("NUOVO TIPO");
-        Console.WriteLine(GraphicsHelper.WeaponTypeMenu);
+        Console.WriteLine("   " + GraphicsHelper.GetWeaponTypeMenu());
         Console.Write($"   Scegli tipo [{weapon.Type}]: ");
         var typeInput = Console.ReadLine()?.Trim();
         WeaponType newType;
         if (string.IsNullOrWhiteSpace(typeInput))
             newType = weapon.Type;
-        else if (!int.TryParse(typeInput, out var typeChoice) || typeChoice < 1 || typeChoice > 5)
-        {
-            GraphicsHelper.WriteError("Tipo non valido.");
-            return;
-        }
         else
-            newType = (WeaponType)typeChoice;
+        {
+            var typeChoice = GraphicsHelper.ParseWeaponTypeChoice(typeInput);
+            if (typeChoice < 0)
+            {
+                GraphicsHelper.WriteError("Tipo non valido.");
+                return;
+            }
+            newType = WeaponType.All[typeChoice - 1];
+        }
 
         Console.Write($"   Danno [{weapon.Damage}]: ");
         var damageInput = Console.ReadLine()?.Trim();
@@ -282,19 +291,22 @@ public class MenuManager
 
         Console.WriteLine();
         GraphicsHelper.WriteTitle("NUOVA RARITÀ");
-        Console.WriteLine(GraphicsHelper.RarityMenu);
+        Console.WriteLine("   " + GraphicsHelper.GetRarityMenu());
         Console.Write($"   Scegli rarità [{weapon.Rarity}]: ");
         var rarityInput = Console.ReadLine()?.Trim();
         WeaponRarity newRarity;
         if (string.IsNullOrWhiteSpace(rarityInput))
             newRarity = weapon.Rarity;
-        else if (!int.TryParse(rarityInput, out var rarityChoice) || rarityChoice < 1 || rarityChoice > 5)
-        {
-            GraphicsHelper.WriteError("Rarità non valida.");
-            return;
-        }
         else
-            newRarity = (WeaponRarity)(rarityChoice - 1);
+        {
+            var rarityChoice = GraphicsHelper.ParseRarityChoice(rarityInput);
+            if (rarityChoice < 0)
+            {
+                GraphicsHelper.WriteError("Rarità non valida.");
+                return;
+            }
+            newRarity = WeaponRarity.All[rarityChoice - 1];
+        }
 
         _arsenal.UpdateWeapon(weapon, newName, newType, newDamage, newRarity);
         GraphicsHelper.WriteSuccess($"Arma '{newName}' aggiornata!");
@@ -352,11 +364,11 @@ public class MenuManager
             return;
         }
 
-        var enemy = GenerateRandomEnemy(_hero.Level);
+        var enemy = EnemyFactory.Generate(_hero.Level);
         GraphicsHelper.WriteTitle("INCONTRO!");
-        Console.WriteLine(GraphicsHelper.GetEnemyArt(enemy.Name));
+        Console.WriteLine(enemy.AsciiArt);
         Console.WriteLine();
-        GraphicsHelper.WriteLineColor("  " + GraphicsHelper.GetEnemyEncounterText(enemy.Name), ConsoleColor.Magenta);
+        GraphicsHelper.WriteLineColor("  " + enemy.EncounterText, ConsoleColor.Magenta);
         GraphicsHelper.Pause();
 
         var outcome = _combat.Fight(_hero, enemy);
@@ -369,10 +381,16 @@ public class MenuManager
                 _db.SaveChanges();
 
                 if (_hero.LevelUpMessage is not null)
+                {
                     GraphicsHelper.WriteCombatAction(_hero.LevelUpMessage, ConsoleColor.Green);
+                    _hero.LevelUpMessage = null;
+                }
 
-                if (TryDropPotion(enemy))
+                if (enemy.TryDropPotion())
+                {
+                    GraphicsHelper.WriteSuccess("Hai ottenuto una Pozione curativa!");
                     _arsenal.AddPotion(new Potion("Pozione curativa"));
+                }
                 break;
             case CombatResult.Defeat:
                 GraphicsHelper.WriteDefeat();
@@ -386,41 +404,55 @@ public class MenuManager
         Console.WriteLine("  " + _hero.GetStatus());
     }
 
-    private void SaveCsv()
+    private void ExportArsenal()
     {
-        _arsenal.SaveToCsv("arsenale.csv");
-        var fullPath = Path.GetFullPath("arsenale.csv");
-        GraphicsHelper.WriteSuccess($"Arsenale salvato in: {fullPath}");
-    }
-
-    private static bool TryDropPotion(Enemy enemy)
-    {
-        double chance = enemy is Dragon ? DragonPotionDropChance : NormalPotionDropChance;
-        if (_random.NextDouble() < chance)
+        if (_exporters.Count == 0)
         {
-            GraphicsHelper.WriteSuccess("Hai ottenuto una Pozione curativa!");
-            return true;
+            GraphicsHelper.WriteError("Nessun esportatore disponibile.");
+            return;
         }
-        return false;
-    }
 
-    private static Enemy GenerateRandomEnemy(int heroLevel)
-    {
-        if (heroLevel < DragonMinLevel)
-            return _random.Next(2) switch
-            {
-                0 => new Goblin(),
-                _ => new Skeleton()
-            };
-
-        var dragonChance = Math.Min(MaxDragonChance, (heroLevel - 1) * DragonChancePerLevel);
-        if (_random.Next(100) < dragonChance)
-            return new Dragon();
-
-        return _random.Next(2) switch
+        var weapons = _arsenal.GetAllWeapons();
+        if (weapons.Count == 0)
         {
-            0 => new Goblin(),
-            _ => new Skeleton()
-        };
+            GraphicsHelper.WriteError("Nessuna arma da esportare.");
+            return;
+        }
+
+        Console.WriteLine();
+        GraphicsHelper.WriteTitle("ESPORTATORE");
+
+        for (int i = 0; i < _exporters.Count; i++)
+            Console.WriteLine($"   {i + 1}) {_exporters[i].FormatName}");
+
+        Console.WriteLine("   0) Annulla");
+        Console.WriteLine();
+        Console.Write("   Scegli formato: ");
+
+        if (!int.TryParse(Console.ReadLine()?.Trim(), out var choice) || choice < 0 || choice > _exporters.Count)
+        {
+            GraphicsHelper.WriteError("Scelta non valida.");
+            return;
+        }
+
+        if (choice == 0)
+        {
+            Console.WriteLine("   Operazione annullata.");
+            return;
+        }
+
+        var exporter = _exporters[choice - 1];
+        var fileName = $"arsenale{exporter.FileExtension}";
+        var fullPath = Path.GetFullPath(fileName);
+
+        try
+        {
+            exporter.Export(weapons, fullPath);
+            GraphicsHelper.WriteSuccess($"Arsenale esportato in: {fullPath} ({exporter.FormatName})");
+        }
+        catch (ExportException)
+        {
+            throw;
+        }
     }
 }
