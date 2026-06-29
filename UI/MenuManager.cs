@@ -30,12 +30,10 @@ public class MenuManager
         {
             try { Console.Clear(); } catch (IOException) { }
             GraphicsHelper.WriteMenuTitle();
-            GraphicsHelper.WriteBox(new[]
-            {
-                "",
-                "  " + _hero.GetStatus(),
-                ""
-            });
+            GraphicsHelper.WriteSeparator('-');
+            Console.Write("  ");
+            GraphicsHelper.WriteHeroStatus(_hero);
+            GraphicsHelper.WriteSeparator('-');
             Console.WriteLine();
             Console.WriteLine("   1) Aggiungi un'arma all'arsenale");
             Console.WriteLine("   2) Mostra inventario");
@@ -174,7 +172,13 @@ public class MenuManager
         var rarity = WeaponRarity.All[rarityChoice - 1];
 
         _arsenal.AddWeapon(name, type, damage, rarity);
-        GraphicsHelper.WriteSuccess($"Arma '{name}' ({rarity}) aggiunta all'arsenale!");
+        Console.Write("   >> ");
+        GraphicsHelper.WriteColor("Arma '", ConsoleColor.Green);
+        GraphicsHelper.WriteColor(name, ConsoleColor.White);
+        GraphicsHelper.WriteColor("' (", ConsoleColor.Green);
+        GraphicsHelper.WriteColor($"{rarity}", GraphicsHelper.GetRarityColor(rarity));
+        GraphicsHelper.WriteColor(") aggiunta all'arsenale!", ConsoleColor.Green);
+        Console.WriteLine();
     }
 
     private void ShowAll()
@@ -194,12 +198,14 @@ public class MenuManager
 
         if (hasPotions)
         {
-            GraphicsHelper.WriteItemList($"POZIONI ({potions.Count})", potions.Select(p => p.ToString()));
+            GraphicsHelper.WriteTitle($"POZIONI ({potions.Count})");
+            foreach (var potion in potions)
+                GraphicsHelper.WritePotion(potion, "  * ");
             Console.WriteLine();
         }
 
         if (hasWeapons)
-            GraphicsHelper.WriteItemList($"ARMI ({weapons.Count})", weapons.Select(a => a.ToString()));
+            GraphicsHelper.WriteItemList($"ARMI ({weapons.Count})", weapons);
     }
 
     private void ShowByType()
@@ -225,7 +231,7 @@ public class MenuManager
             return;
         }
 
-        GraphicsHelper.WriteItemList(type.ToString(), weapons.Select(a => a.ToString()));
+        GraphicsHelper.WriteItemList(type.ToString(), weapons);
     }
 
     private void SearchAndEquip()
@@ -235,7 +241,9 @@ public class MenuManager
             return;
 
         _hero.EquippedWeapon = weapon;
-        GraphicsHelper.WriteSuccess($"Equipaggiata: {weapon}");
+        Console.Write("   >> ");
+        GraphicsHelper.WriteColor("Equipaggiata: ", ConsoleColor.Green);
+        GraphicsHelper.WriteWeapon(weapon);
     }
 
     private void ModifyWeapon()
@@ -336,7 +344,7 @@ public class MenuManager
         Console.WriteLine();
         GraphicsHelper.WriteTitle($"RISULTATI TROVATI ({results.Count})");
         for (int i = 0; i < results.Count; i++)
-            Console.WriteLine($"   {i + 1}) {results[i]}");
+            GraphicsHelper.WriteWeapon(results[i], $"   {i + 1}) ");
 
         Console.WriteLine();
         Console.Write($"   Scegli un'arma {action} (0 per annullare): ");
@@ -401,7 +409,8 @@ public class MenuManager
         }
 
         Console.WriteLine();
-        Console.WriteLine("  " + _hero.GetStatus());
+        Console.Write("  ");
+        GraphicsHelper.WriteHeroStatus(_hero);
     }
 
     private void ExportArsenal()

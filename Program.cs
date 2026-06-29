@@ -34,7 +34,10 @@ while (true)
             GraphicsHelper.WriteTitle("EROI DISPONIBILI");
 
             for (int i = 0; i < heroes.Count; i++)
-                Console.WriteLine($"   {i + 1,2}) {heroes[i].GetShortStatus()}");
+            {
+                Console.Write($"   {i + 1,2}) ");
+                GraphicsHelper.WriteHeroStatus(heroes[i]);
+            }
 
             Console.WriteLine();
             Console.WriteLine("   C) Crea un nuovo eroe");

@@ -140,6 +140,32 @@ public static class GraphicsHelper
             Console.WriteLine("  * " + item);
     }
 
+    public static void WriteWeapon(Weapon weapon, string prefix = "")
+    {
+        WriteColor($"{prefix}#{weapon.Id} ", ConsoleColor.DarkGray);
+        WriteColor($"{weapon.Name} ", ConsoleColor.White);
+        WriteColor($"({weapon.Type}) ", ConsoleColor.DarkCyan);
+        Console.Write("\u2014 ");
+        WriteColor($"[{weapon.Rarity}]", GetRarityColor(weapon.Rarity));
+        WriteColor(" danno ", ConsoleColor.Gray);
+        WriteColor($"{weapon.Damage}.", ConsoleColor.Cyan);
+        Console.WriteLine();
+    }
+
+    public static void WritePotion(Potion potion, string prefix = "")
+    {
+        WriteColor($"{prefix}{potion.Name} ", ConsoleColor.Green);
+        WriteColor("(cura il 50% della salute massima)", ConsoleColor.DarkGreen);
+        Console.WriteLine();
+    }
+
+    public static void WriteItemList(string title, IEnumerable<Weapon> weapons)
+    {
+        WriteTitle(title);
+        foreach (var weapon in weapons)
+            WriteWeapon(weapon, "  * ");
+    }
+
     public static void WriteError(string message)
     {
         WriteColor("!! ", ConsoleColor.Yellow);
@@ -210,5 +236,56 @@ public static class GraphicsHelper
         if (choice < 1 || choice > WeaponRarity.All.Count)
             return null;
         return WeaponRarity.All[choice - 1];
+    }
+
+    public static ConsoleColor GetRarityColor(WeaponRarity rarity)
+    {
+        return rarity.Id switch
+        {
+            1 => ConsoleColor.Gray,
+            2 => ConsoleColor.Green,
+            3 => ConsoleColor.Cyan,
+            4 => ConsoleColor.Magenta,
+            5 => ConsoleColor.Yellow,
+            _ => ConsoleColor.Gray
+        };
+    }
+
+    public static void WriteHeroStatus(Hero hero)
+    {
+        WriteColor($"{hero.Name} — ", ConsoleColor.White);
+        WriteColor($"Liv.{hero.Level}", ConsoleColor.Cyan);
+        Console.Write(" | ");
+        WriteColor("HP:", ConsoleColor.White);
+        WriteColor($" {hero.Hp}/{hero.MaxHp} ", hero.Hp > hero.MaxHp / 2
+            ? ConsoleColor.Green
+            : hero.Hp > hero.MaxHp / 4
+                ? ConsoleColor.DarkYellow
+                : ConsoleColor.Red);
+        Console.Write("| ");
+        WriteColor("Att:", ConsoleColor.White);
+        WriteColor($" {hero.BaseAttack}", ConsoleColor.DarkCyan);
+        Console.Write("+");
+        WriteColor($"{hero.WeaponDamage}", ConsoleColor.Cyan);
+        if (hero.RarityBonus > 0)
+        {
+            Console.Write("+");
+            WriteColor($"{hero.RarityBonus}", GetRarityColor(hero.EquippedWeapon!.Rarity));
+        }
+        WriteColor($"={hero.AttackPower}", ConsoleColor.White);
+        Console.Write(" | ");
+        WriteColor("XP:", ConsoleColor.White);
+        WriteColor($" {hero.Xp}/{hero.Level * 100}", ConsoleColor.DarkYellow);
+        Console.Write(" | ");
+        WriteColor("Oro:", ConsoleColor.White);
+        WriteColor($" {hero.Gold}", ConsoleColor.Yellow);
+        if (hero.EquippedWeapon is not null)
+        {
+            Console.Write(" | ");
+            WriteColor("Arma:", ConsoleColor.White);
+            Console.Write($" {hero.EquippedWeapon.Name} ");
+            WriteColor($"({hero.EquippedWeapon.Rarity})", GetRarityColor(hero.EquippedWeapon.Rarity));
+        }
+        Console.WriteLine();
     }
 }

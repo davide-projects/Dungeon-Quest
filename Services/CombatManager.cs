@@ -12,9 +12,6 @@ public enum CombatResult
 
 public class CombatManager
 {
-    private const int BaseMissChance = 20;
-    private const int MissReductionPerLevel = 2;
-    private const int MinMissChance = 2;
     private const double MinDamageMultiplier = 0.8;
     private const double MaxDamageVariation = 0.4;
 
@@ -104,8 +101,7 @@ public class CombatManager
 
     private static int CalculateHeroDamage(Hero hero)
     {
-        var missChance = Math.Max(MinMissChance, BaseMissChance - (hero.Level - 1) * MissReductionPerLevel);
-        if (_random.Next(100) < missChance)
+        if (_random.Next(100) < hero.MissRate)
             return 0;
 
         var variation = MinDamageMultiplier + _random.NextDouble() * MaxDamageVariation;

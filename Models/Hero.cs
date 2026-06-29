@@ -12,6 +12,9 @@ public class Hero : ICombatant
     private const int StartingMaxHp = 30;
     private const int AttackPerLevel = 2;
     private const int HpPerLevel = 10;
+    private const int BaseMissChance = 20;
+    private const int MissReductionPerLevel = 2;
+    private const int MinMissChance = 2;
 
     private int _hp;
     private int _xp;
@@ -22,6 +25,7 @@ public class Hero : ICombatant
     public Weapon? EquippedWeapon { get; set; }
     public List<Weapon> Weapons { get; set; } = [];
     public int Level { get; private set; }
+    public int MissRate => Math.Max(MinMissChance, BaseMissChance - (Level - 1) * MissReductionPerLevel);
     public int BaseAttack { get; private set; }
     public int MaxHp { get; private set; }
 
@@ -48,7 +52,9 @@ public class Hero : ICombatant
         }
     }
 
-    public int AttackPower => BaseAttack + (EquippedWeapon?.Damage ?? 0);
+    public int WeaponDamage => EquippedWeapon?.Damage ?? 0;
+    public int RarityBonus => EquippedWeapon?.Rarity.BonusAttack ?? 0;
+    public int AttackPower => BaseAttack + WeaponDamage + RarityBonus;
 
     public bool IsAlive => Hp > 0;
 
@@ -88,7 +94,8 @@ public class Hero : ICombatant
     public string GetShortStatus()
     {
         string state = Hp <= 0 ? " (Sconfitto!)" : "";
-        return $"{Name} — Liv.{Level} | HP: {Hp}/{MaxHp} | Att: {AttackPower} | Oro: {Gold}{state}";
+        string rarity = EquippedWeapon is null ? "" : $" (rarità +{RarityBonus})";
+        return $"{Name} — Liv.{Level} | HP: {Hp}/{MaxHp} | Att: {AttackPower}{rarity} | Oro: {Gold}{state}";
     }
 
     public void Heal(int amount)
@@ -121,12 +128,18 @@ public class Hero : ICombatant
         MaxHp += HpPerLevel;
         _hp = MaxHp;
         BaseAttack += AttackPerLevel;
-        LevelUpMessage = $"{Name} è salito al livello {Level}! Vita ripristinata, attacco base ora {BaseAttack}.";
+        string attackDetail = RarityBonus > 0
+            ? $"{BaseAttack}+{WeaponDamage}+{RarityBonus}"
+            : $"{BaseAttack}+{WeaponDamage}";
+        LevelUpMessage = $"{Name} è salito al livello {Level}! HP: {_hp}/{MaxHp} | Att: {attackDetail}={AttackPower} | Tasso errore: {MissRate}%";
     }
 
     public string GetStatus()
     {
         string weapon = EquippedWeapon is null ? "a mani nude" : EquippedWeapon.Name;
-        return $"{Name} — Liv.{Level} | HP: {Hp}/{MaxHp} | Att: {AttackPower} | XP: {_xp}/{Level * 100} | Oro: {Gold} | Arma: {weapon}";
+        string attackDetail = RarityBonus > 0
+            ? $"{BaseAttack}+{WeaponDamage}+{RarityBonus}"
+            : $"{BaseAttack}+{WeaponDamage}";
+        return $"{Name} — Liv.{Level} | HP: {Hp}/{MaxHp} | Att: {attackDetail}={AttackPower} | XP: {_xp}/{Level * 100} | Oro: {Gold} | Arma: {weapon}";
     }
 }
